@@ -150,6 +150,56 @@ func TestValidateBody(t *testing.T) {
 			t.Errorf("got %v want %v", gotPhoneNumberRequest, phoneNumberRequest)
 		}
 	})
+
+	t.Run("returns ErrInvalidField in invalid object in array", func(t *testing.T) {
+		dummyRequest := DummyRequest{
+			S: "Hello, World!",
+			I: 10,
+		}
+
+		invalidDummyRequest := DummyRequest{
+			S: "Hello,",
+			I: 10,
+		}
+
+		wantArray := []DummyRequest{dummyRequest, invalidDummyRequest, dummyRequest}
+
+		body := newRequestBody(wantArray)
+
+		_, err := validation.ValidateBody[[]DummyRequest](body)
+
+		errInvalidArrayElement := validation.NewErrInvalidArrayElement(nil)
+		if !errors.As(err, &errInvalidArrayElement) {
+			t.Errorf("didn't get error with type NewErrInvalidArrayElement")
+		}
+
+		errInvalidRequestField := validation.NewErrInvalidRequestField("")
+		if !errors.As(errInvalidArrayElement, &errInvalidRequestField) {
+			t.Errorf("ErrInvalidArrayElement doesn't wrap a ErrInvalidRequestField")
+		}
+
+	})
+
+	t.Run("parses array on valid request", func(t *testing.T) {
+		dummyRequest := DummyRequest{
+			S: "Hello, World!",
+			I: 10,
+		}
+
+		wantArray := []DummyRequest{dummyRequest, dummyRequest, dummyRequest}
+
+		body := newRequestBody(wantArray)
+
+		gotArray, err := validation.ValidateBody[[]DummyRequest](body)
+
+		if err != nil {
+			t.Errorf("did not expect error, got %v", err)
+		}
+
+		if !reflect.DeepEqual(gotArray, wantArray) {
+			t.Errorf("got %v want %v", gotArray, wantArray)
+		}
+	})
 }
 
 func assertError(t testing.TB, got, want error) {
