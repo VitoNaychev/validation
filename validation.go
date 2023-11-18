@@ -68,6 +68,8 @@ func ValidateBody[T ValidationObject](body io.Reader) (T, error) {
 		if err != nil {
 			return requestObject, err
 		}
+	default:
+		return requestObject, ErrUnsupportedType
 	}
 
 	return requestObject, nil
